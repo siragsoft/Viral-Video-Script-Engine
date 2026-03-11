@@ -14,8 +14,9 @@ if not API_KEY or API_KEY == "ضغ_مفتاحك_هنا":
 else:
     try:
         genai.configure(api_key=API_KEY)
-        # استخدمنا 'gemini-pro' لأنه الأكثر توافقاً مع جميع الإصدارات
-        model = genai.GenerativeModel('gemini-pro')
+        
+        # التغيير الجوهري هنا: نستخدم الاسم الكامل والحديث للنموذج
+        model = genai.GenerativeModel('models/gemini-1.5-pro')
 
         # 3. مدخلات المستخدم
         topic = st.text_input("عن ماذا يتحدث الفيديو؟", placeholder="مثلاً: نصائح للاستثمار في الذهب")
@@ -24,13 +25,17 @@ else:
             if topic:
                 with st.spinner("جاري الكتابة بذكاء..."):
                     try:
+                        # طلب النص
                         prompt = f"اكتب نص فيديو تيك توك فيروسي وممتع عن: {topic}. اجعل البداية قوية جداً لجذب الانتباه."
                         response = model.generate_content(prompt)
                         
-                        st.success("تم التوليد بنجاح!")
-                        st.markdown(f"### 📝 النص المقترح:\n{response.text}")
+                        if response.text:
+                            st.success("تم التوليد بنجاح!")
+                            st.markdown(f"### 📝 النص المقترح:\n{response.text}")
+                        else:
+                            st.error("لم يتم استلام نص، حاول مرة أخرى.")
                     except Exception as e:
-                        st.error(f"حدث خطأ أثناء توليد المحتوى: {e}")
+                        st.error(f"عذراً، المحرك يحتاج لتحديث الاسم: {e}")
             else:
                 st.error("رجاءً اكتب فكرة أولاً!")
     except Exception as e:
