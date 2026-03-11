@@ -8,7 +8,7 @@ st.write("أدخل فكرتك وسيقوم **شفري** بكتابة نص فيد
 
 # 2. إعداد مفتاح API (ضع مفتاحك هنا)
 # للحصول عليه: https://aistudio.google.com/app/apikey
-API_KEY = "ضغ_مفتاحك_هنا" 
+API_KEY = "AIzaSyAH2I6wxGdj8TU-okMPxum0qP6Vgp6-Qd4" 
 
 if API_KEY == "ضغ_مفتاحك_هنا":
     st.warning("رجاءً ضع مفتاح API الخاص بك في الكود لتشغيل التطبيق.")
