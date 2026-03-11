@@ -15,28 +15,31 @@ else:
     try:
         genai.configure(api_key=API_KEY)
         
-        # التغيير الجوهري هنا: نستخدم الاسم الكامل والحديث للنموذج
-        model = genai.GenerativeModel('models/gemini-1.5-pro')
+        # وظيفة ذكية للبحث عن أي نموذج متاح ومناسب
+        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        if not available_models:
+            st.error("لم يتم العثور على أي نماذج تدعم توليد المحتوى في هذا الحساب.")
+        else:
+            # نختار أول نموذج متاح (غالباً سيكون هو الصحيح)
+            model_name = available_models[0]
+            model = genai.GenerativeModel(model_name)
 
-        # 3. مدخلات المستخدم
-        topic = st.text_input("عن ماذا يتحدث الفيديو؟", placeholder="مثلاً: نصائح للاستثمار في الذهب")
-        
-        if st.button("توليد النص السحري ✨"):
-            if topic:
-                with st.spinner("جاري الكتابة بذكاء..."):
-                    try:
-                        # طلب النص
-                        prompt = f"اكتب نص فيديو تيك توك فيروسي وممتع عن: {topic}. اجعل البداية قوية جداً لجذب الانتباه."
-                        response = model.generate_content(prompt)
-                        
-                        if response.text:
-                            st.success("تم التوليد بنجاح!")
-                            st.markdown(f"### 📝 النص المقترح:\n{response.text}")
-                        else:
-                            st.error("لم يتم استلام نص، حاول مرة أخرى.")
-                    except Exception as e:
-                        st.error(f"عذراً، المحرك يحتاج لتحديث الاسم: {e}")
-            else:
-                st.error("رجاءً اكتب فكرة أولاً!")
+            # 3. مدخلات المستخدم
+            topic = st.text_input("عن ماذا يتحدث الفيديو؟", placeholder="مثلاً: نصائح للاستثمار في الذهب")
+            
+            if st.button("توليد النص السحري ✨"):
+                if topic:
+                    with st.spinner(f"جاري العمل باستخدام {model_name}..."):
+                        try:
+                            prompt = f"اكتب نص فيديو تيك توك فيروسي وممتع عن: {topic}. اجعل البداية قوية جداً لجذب الانتباه."
+                            response = model.generate_content(prompt)
+                            
+                            if response.text:
+                                st.success("تم التوليد بنجاح!")
+                                st.markdown(f"### 📝 النص المقترح:\n{response.text}")
+                        except Exception as e:
+                            st.error(f"خطأ في التوليد: {e}")
+                else:
+                    st.error("رجاءً اكتب فكرة أولاً!")
     except Exception as e:
-        st.error(f"خطأ في إعداد المكتبة: {e}")
+        st.error(f"خطأ في إعداد المكتبة أو المفتاح: {e}")
