@@ -1,0 +1,5 @@
+{
+  "name": "Viral Video Script Engine",
+  "description": "A multilingual auto-short video engine that generates viral scripts, visual prompts, and metadata for TikTok, Reels, and Shorts.",
+  "requestFramePermissions": []
+}
