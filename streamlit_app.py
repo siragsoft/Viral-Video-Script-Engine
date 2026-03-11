@@ -14,7 +14,7 @@ if API_KEY == "ضغ_مفتاحك_هنا":
     st.warning("رجاءً ضع مفتاح API الخاص بك في الكود لتشغيل التطبيق.")
 else:
     genai.configure(api_key=API_KEY)
-model = genai.GenerativeModel('gemini-1.5-pro')
+model = genai.GenerativeModel('gemini-pro')
     # 3. مدخلات المستخدم
     topic = st.text_input("عن ماذا يتحدث الفيديو؟", placeholder="مثلاً: نصائح للاستثمار في الذهب")
     
