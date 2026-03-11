@@ -3,56 +3,70 @@ import google.generativeai as genai
 from gtts import gTTS
 import io
 
-# 1. إعدادات الصفحة
+# 1. إعدادات الصفحة والتصميم
 st.set_page_config(page_title="Sovereign Voice AI", page_icon="🎙️", layout="centered")
 
-# شعار البراند
+st.markdown("""
+    <style>
+    .stButton>button { width: 100%; border-radius: 20px; background-color: #FF4B4B; color: white; height: 3em; font-weight: bold;}
+    .audio-box { background-color: #f0f2f6; padding: 20px; border-radius: 15px; border: 1px solid #d1d5db; margin-top: 20px; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# شعار البراند المطور
 st.markdown("""
     <div style="text-align: center; padding: 15px; background-color: #1e3a8a; border-radius: 15px; margin-bottom: 25px;">
-        <h1 style="color: #fbbf24; margin: 0;">🎙️ SOVEREIGN VOICE</h1>
-        <p style="color: white;">النص والصوت الذكي في مكان واحد</p>
+        <h1 style="color: #fbbf24; margin: 0; font-family: 'Arial';">🎙️ SOVEREIGN VOICE</h1>
+        <p style="color: white; font-size: 1.1em;">حول أفكارك إلى نصوص وأصوات فيروسية في ثوانٍ</p>
     </div>
     """, unsafe_allow_html=True)
 
-# 2. إعداد API
+# 2. إعداد API عبر Secrets
 try:
     API_KEY = st.secrets["GEMINI_API_KEY"]
     genai.configure(api_key=API_KEY)
 except:
-    st.error("⚠️ يرجى ضبط GEMINI_API_KEY في Secrets")
+    st.error("⚠️ يرجى ضبط GEMINI_API_KEY في إعدادات Secrets الخاصة بـ Streamlit.")
     st.stop()
 
 # 3. واجهة المستخدم
-topic = st.text_input("عن ماذا يتحدث الفيديو؟", placeholder="مثلاً: نصائح للنجاح في 2026")
+topic = st.text_input("ما هو موضوع الفيديو القادم؟", placeholder="مثلاً: كيف تبدأ تجارة إلكترونية برأس مال بسيط")
 
-if st.button("توليد المحتوى الآن ✨"):
+if st.button("توليد المحتوى الصوتي والبصري ✨"):
     if topic:
-        with st.spinner("جاري البحث عن أفضل نموذج متاح وتوليد المحتوى..."):
+        with st.spinner("شفري يبحث عن أفضل نموذج ويقوم بالعمل..."):
             try:
-                # خطوة ذكية: البحث عن النماذج المتاحة تلقائياً
-                models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-                # اختيار أحدث نموذج متاح (غالباً يكون الأول في القائمة)
-                selected_model_name = models[0] if models else 'gemini-pro'
+                # اكتشاف النماذج المتاحة تلقائياً لتجنب خطأ 404
+                model_list = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+                # نختار الموديل المتاح (سواء كان gemini-pro أو 1.5 flash)
+                working_model = model_list[0] if model_list else 'gemini-pro'
                 
-                model = genai.GenerativeModel(selected_model_name)
+                model = genai.GenerativeModel(working_model)
                 
-                # توليد النص
-                prompt = f"اكتب نص فيديو تيك توك قصير ومثير جداً عن {topic}. اجعل النص باللهجة البيضاء ومناسباً لـ 30 ثانية."
+                # صياغة البرومبت (الأمر)
+                prompt = f"""
+                اكتب نص فيديو تيك توك قصير واحترافي عن: {topic}. 
+                اجعل اللغة بسيطة وجذابة. 
+                تجنب استخدام الرموز الكثيرة والنجوم في النص لسهولة قراءته صوتياً.
+                """
+                
                 response = model.generate_content(prompt)
                 script_text = response.text
                 
-                st.success(f"تم التوليد باستخدام نموذج: {selected_model_name}")
+                # عرض النص
+                st.success(f"تم التوليد بنجاح!")
                 st.markdown(f"### 📝 النص المقترح:\n{script_text}")
                 
-                # تحويل النص إلى صوت (إزالة النجوم والرموز ليكون الصوت نقياً)
-                clean_text = script_text.replace('*', '').replace('#', '')
+                # تحويل النص إلى صوت
+                # نقوم بتنظيف النص من أي رموز قد تسبب مشكلة للمحرك الصوتي
+                clean_text = script_text.replace("*", "").replace("#", "")
                 tts = gTTS(text=clean_text, lang='ar')
                 audio_fp = io.BytesIO()
                 tts.write_to_fp(audio_fp)
                 
-                # عرض الصوت
-                st.write("---")
-                st.write("### 🎧 استمع وحمّل الصوت:")
+                # عرض قسم الصوت
+                st.markdown('<div class="audio-box">', unsafe_allow_html=True)
+                st.write("### 🎧 معاينة الصوت وتحميله:")
                 st.audio(audio_fp, format='audio/mp3')
                 
                 st.download_button(
@@ -61,11 +75,12 @@ if st.button("توليد المحتوى الآن ✨"):
                     file_name="viral_voice.mp3",
                     mime="audio/mp3"
                 )
+                st.markdown('</div>', unsafe_allow_html=True)
                 
             except Exception as e:
-                st.error(f"عذراً، حدث خطأ: {e}")
+                st.error(f"حدث خطأ تقني: {e}")
     else:
-        st.warning("يرجى كتابة عنوان للفيديو.")
+        st.warning("يرجى كتابة موضوع الفيديو أولاً.")
 
 st.markdown("---")
 st.caption("Developed by siragsoft | Powered by Gemini & gTTS")
