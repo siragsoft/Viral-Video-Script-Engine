@@ -3,21 +3,14 @@ import google.generativeai as genai
 from gtts import gTTS
 import io
 
-# 1. إعدادات الصفحة والتصميم
-st.set_page_config(page_title="Sovereign Script AI", page_icon="🎙️", layout="centered")
-
-st.markdown("""
-    <style>
-    .stButton>button { width: 100%; border-radius: 20px; background-color: #FF4B4B; color: white; }
-    .audio-box { background-color: #f0f2f6; padding: 20px; border-radius: 15px; margin-top: 20px; }
-    </style>
-    """, unsafe_allow_html=True)
+# 1. إعدادات الصفحة
+st.set_page_config(page_title="Sovereign Voice AI", page_icon="🎙️", layout="centered")
 
 # شعار البراند
 st.markdown("""
-    <div style="text-align: center; padding: 10px; background-color: #1e3a8a; border-radius: 15px; margin-bottom: 25px;">
+    <div style="text-align: center; padding: 15px; background-color: #1e3a8a; border-radius: 15px; margin-bottom: 25px;">
         <h1 style="color: #fbbf24; margin: 0;">🎙️ SOVEREIGN VOICE</h1>
-        <p style="color: white;">صوت ذكي لنصوصك الفيروسية</p>
+        <p style="color: white;">النص والصوت الذكي في مكان واحد</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -30,42 +23,47 @@ except:
     st.stop()
 
 # 3. واجهة المستخدم
-topic = st.text_input("عن ماذا يتحدث الفيديو؟", placeholder="مثلاً: 3 أسرار لزيادة المتابعين...")
+topic = st.text_input("عن ماذا يتحدث الفيديو؟", placeholder="مثلاً: نصائح للنجاح في 2026")
 
-if st.button("توليد النص والصوت السحري ✨"):
+if st.button("توليد المحتوى الآن ✨"):
     if topic:
-        with st.spinner("شفري يكتب النص ويسجل الصوت..."):
+        with st.spinner("جاري البحث عن أفضل نموذج متاح وتوليد المحتوى..."):
             try:
+                # خطوة ذكية: البحث عن النماذج المتاحة تلقائياً
+                models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+                # اختيار أحدث نموذج متاح (غالباً يكون الأول في القائمة)
+                selected_model_name = models[0] if models else 'gemini-pro'
+                
+                model = genai.GenerativeModel(selected_model_name)
+                
                 # توليد النص
-                model = genai.GenerativeModel('gemini-1.5-pro')
-                prompt = f"اكتب نص فيديو قصير ومثير جداً عن {topic}. اجعل النص قصيراً ليناسب 30 ثانية."
+                prompt = f"اكتب نص فيديو تيك توك قصير ومثير جداً عن {topic}. اجعل النص باللهجة البيضاء ومناسباً لـ 30 ثانية."
                 response = model.generate_content(prompt)
                 script_text = response.text
                 
-                st.success("تم التوليد بنجاح!")
+                st.success(f"تم التوليد باستخدام نموذج: {selected_model_name}")
                 st.markdown(f"### 📝 النص المقترح:\n{script_text}")
                 
-                # تحويل النص إلى صوت
-                tts = gTTS(text=script_text, lang='ar')
+                # تحويل النص إلى صوت (إزالة النجوم والرموز ليكون الصوت نقياً)
+                clean_text = script_text.replace('*', '').replace('#', '')
+                tts = gTTS(text=clean_text, lang='ar')
                 audio_fp = io.BytesIO()
                 tts.write_to_fp(audio_fp)
                 
-                # عرض مشغل الصوت
-                st.markdown('<div class="audio-box">', unsafe_allow_html=True)
-                st.write("### 🎧 استمع إلى الصوت:")
+                # عرض الصوت
+                st.write("---")
+                st.write("### 🎧 استمع وحمّل الصوت:")
                 st.audio(audio_fp, format='audio/mp3')
                 
-                # زر التحميل
                 st.download_button(
                     label="تحميل ملف الصوت MP3 📥",
                     data=audio_fp.getvalue(),
                     file_name="viral_voice.mp3",
                     mime="audio/mp3"
                 )
-                st.markdown('</div>', unsafe_allow_html=True)
                 
             except Exception as e:
-                st.error(f"حدث خطأ: {e}")
+                st.error(f"عذراً، حدث خطأ: {e}")
     else:
         st.warning("يرجى كتابة عنوان للفيديو.")
 
