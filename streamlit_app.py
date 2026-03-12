@@ -16,7 +16,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# العنوان والشعار
+# العنوان
 st.markdown("""
     <div style="text-align: center; padding: 20px; background-color: #1e3a8a; border-radius: 15px; margin-bottom: 25px;">
         <h1 style="color: #fbbf24; margin: 0; font-family: 'Arial Black';">🎬 SOVEREIGN STUDIO</h1>
@@ -35,7 +35,7 @@ except:
 # 3. واجهة المدخلات
 topic = st.text_input("ما هي فكرة الفيديو القادم؟", placeholder="مثلاً: أسرار النجاح في البرمجة")
 
-# 4. زر التشغيل
+# 4. زر التشغيل والعمليات
 if st.button("توليد المشروع الكامل ✨"):
     if topic:
         with st.spinner("شفري يجهز لك المحتوى..."):
@@ -46,11 +46,7 @@ if st.button("توليد المشروع الكامل ✨"):
                 model = genai.GenerativeModel(working_model)
                 
                 # البرومبت
-                prompt = f"""
-                اكتب نص فيديو تيك توك قصير عن: {topic}.
-                1. ضع الكلام الذي سيُقال صوتياً فقط بين علامتي [START] و [END].
-                2. اقترح 3 كلمات مفتاحية بالإنجليزية للصور بعد كلمة Keywords:
-                """
+                prompt = f"اكتب نص فيديو تيك توك قصير عن: {topic}. ضع الكلام الذي سيُقال صوتياً فقط بين [START] و [END]. واقترح 3 كلمات مفتاحية بالإنجليزية للصور بعد كلمة Keywords:"
                 
                 response = model.generate_content(prompt)
                 full_text = response.text
@@ -76,7 +72,7 @@ if st.button("توليد المشروع الكامل ✨"):
                     st.download_button(label="تحميل الصوت MP3 📥", data=audio_fp.getvalue(), file_name="voice.mp3")
                     st.markdown('</div>', unsafe_allow_html=True)
 
-                # عرض الصور المقترحة
+                # عرض الصور
                 st.write("---")
                 st.markdown("### 🖼️ صور ملهمة:")
                 kw_match = re.search(r'Keywords:(.*)', full_text, re.IGNORECASE)
@@ -94,6 +90,6 @@ if st.button("توليد المشروع الكامل ✨"):
     else:
         st.warning("يرجى كتابة موضوع أولاً.")
 
-# 5. تذييل الصفحة (تأكد أن هذا السطر منفصل تماماً)
+# 5. تذييل الصفحة (تأكد أن هذا السطر في نهاية الملف تماماً)
 st.markdown("---")
 st.caption("تم التطوير بواسطة siragsoft | الإصدار المتقدم 3.1")
