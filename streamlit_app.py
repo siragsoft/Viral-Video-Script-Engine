@@ -2,85 +2,100 @@ import streamlit as st
 import google.generativeai as genai
 from gtts import gTTS
 import io
+import re
 
-# 1. إعدادات الصفحة والتصميم
+# 1. إعدادات الصفحة والتنسيق الجمالي
 st.set_page_config(page_title="Sovereign Voice AI", page_icon="🎙️", layout="centered")
 
 st.markdown("""
     <style>
     .stButton>button { width: 100%; border-radius: 20px; background-color: #FF4B4B; color: white; height: 3em; font-weight: bold;}
     .audio-box { background-color: #f0f2f6; padding: 20px; border-radius: 15px; border: 1px solid #d1d5db; margin-top: 20px; }
+    .script-box { background-color: #ffffff; padding: 15px; border-radius: 10px; border-right: 5px solid #1e3a8a; margin-bottom: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
-# شعار البراند المطور
+# شعار التطبيق
 st.markdown("""
     <div style="text-align: center; padding: 15px; background-color: #1e3a8a; border-radius: 15px; margin-bottom: 25px;">
-        <h1 style="color: #fbbf24; margin: 0; font-family: 'Arial';">🎙️ SOVEREIGN VOICE</h1>
-        <p style="color: white; font-size: 1.1em;">حول أفكارك إلى نصوص وأصوات فيروسية في ثوانٍ</p>
+        <h1 style="color: #fbbf24; margin: 0;">🎙️ SOVEREIGN VOICE</h1>
+        <p style="color: white; font-size: 1.1em;">توليد نصوص وأصوات صافية للمونتاج</p>
     </div>
     """, unsafe_allow_html=True)
 
-# 2. إعداد API عبر Secrets
+# 2. جلب المفتاح من الإعدادات السرية
 try:
     API_KEY = st.secrets["GEMINI_API_KEY"]
     genai.configure(api_key=API_KEY)
 except:
-    st.error("⚠️ يرجى ضبط GEMINI_API_KEY في إعدادات Secrets الخاصة بـ Streamlit.")
+    st.error("⚠️ خطأ: تأكد من إضافة GEMINI_API_KEY في Secrets على Streamlit Cloud.")
     st.stop()
 
 # 3. واجهة المستخدم
-topic = st.text_input("ما هو موضوع الفيديو القادم؟", placeholder="مثلاً: كيف تبدأ تجارة إلكترونية برأس مال بسيط")
+topic = st.text_input("ما هو موضوع الفيديو؟", placeholder="مثلاً: 5 نصائح لتنظيم الوقت")
 
-if st.button("توليد المحتوى الصوتي والبصري ✨"):
+if st.button("توليد النص والصوت الصافي ✨"):
     if topic:
-        with st.spinner("شفري يبحث عن أفضل نموذج ويقوم بالعمل..."):
+        with st.spinner("شفري يقوم بتنقية النص وتحويله لصوت..."):
             try:
-                # اكتشاف النماذج المتاحة تلقائياً لتجنب خطأ 404
+                # اكتشاف الموديل المتاح
                 model_list = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-                # نختار الموديل المتاح (سواء كان gemini-pro أو 1.5 flash)
                 working_model = model_list[0] if model_list else 'gemini-pro'
-                
                 model = genai.GenerativeModel(working_model)
                 
-                # صياغة البرومبت (الأمر)
+                # البرومبت المطور لاستخراج الصوت الصافي
                 prompt = f"""
-                اكتب نص فيديو تيك توك قصير واحترافي عن: {topic}. 
-                اجعل اللغة بسيطة وجذابة. 
-                تجنب استخدام الرموز الكثيرة والنجوم في النص لسهولة قراءته صوتياً.
+                اكتب نص فيديو تيك توك قصير عن: {topic}.
+                مهم جداً: ضع الكلام الذي سيُقال صوتياً فقط (Voice-over) بين علامتي [START] و [END].
+                أي ملاحظات إخراجية أو عناوين فرعية ضعها خارج هذه العلامات.
                 """
                 
                 response = model.generate_content(prompt)
-                script_text = response.text
+                full_text = response.text
                 
-                # عرض النص
-                st.success(f"تم التوليد بنجاح!")
-                st.markdown(f"### 📝 النص المقترح:\n{script_text}")
+                # عرض النص الكامل للمستخدم
+                st.markdown("### 📝 السيناريو المقترح:")
+                st.markdown(f'<div class="script-box">{full_text}</div>', unsafe_allow_html=True)
+
+                # --- عملية استخراج وتنظيف الصوت ---
+                # 1. البحث عن النص بين العلامات
+                voice_match = re.search(r'\[START\](.*?)\[END\]', full_text, re.DOTALL)
+                if voice_match:
+                    voice_text = voice_match.group(1).strip()
+                else:
+                    voice_text = full_text # إذا فشل الموديل نأخذ النص كاملاً
                 
-                # تحويل النص إلى صوت
-                # نقوم بتنظيف النص من أي رموز قد تسبب مشكلة للمحرك الصوتي
-                clean_text = script_text.replace("*", "").replace("#", "")
-                tts = gTTS(text=clean_text, lang='ar')
-                audio_fp = io.BytesIO()
-                tts.write_to_fp(audio_fp)
+                # 2. تنظيف النص من النجوم، المربعات، وأي ملاحظات بين أقواس
+                voice_text = re.sub(r'[*#_]', '', voice_text)  # حذف علامات التنسيق
+                voice_text = re.sub(r'\(.*?\)', '', voice_text) # حذف ملاحظات مثل (موسيقى حماسية)
+                voice_text = voice_text.replace('[START]', '').replace('[END]', '') # التأكد من حذف العلامات نفسها
                 
-                # عرض قسم الصوت
-                st.markdown('<div class="audio-box">', unsafe_allow_html=True)
-                st.write("### 🎧 معاينة الصوت وتحميله:")
-                st.audio(audio_fp, format='audio/mp3')
-                
-                st.download_button(
-                    label="تحميل ملف الصوت MP3 📥",
-                    data=audio_fp.getvalue(),
-                    file_name="viral_voice.mp3",
-                    mime="audio/mp3"
-                )
-                st.markdown('</div>', unsafe_allow_html=True)
+                # 4. توليد الصوت gTTS
+                if voice_text:
+                    tts = gTTS(text=voice_text, lang='ar')
+                    audio_fp = io.BytesIO()
+                    tts.write_to_fp(audio_fp)
+                    
+                    # عرض قسم الصوت
+                    st.markdown('<div class="audio-box">', unsafe_allow_html=True)
+                    st.write("### 🎧 الصوت الصافي المستخرج:")
+                    st.audio(audio_fp, format='audio/mp3')
+                    
+                    st.download_button(
+                        label="تحميل ملف الصوت الصافي MP3 📥",
+                        data=audio_fp.getvalue(),
+                        file_name="clean_voice_over.mp3",
+                        mime="audio/mp3"
+                    )
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    with st.expander("رؤية النص الذي تم إرساله للمحرك الصوتي"):
+                        st.write(voice_text)
                 
             except Exception as e:
-                st.error(f"حدث خطأ تقني: {e}")
+                st.error(f"حدث خطأ: {e}")
     else:
-        st.warning("يرجى كتابة موضوع الفيديو أولاً.")
+        st.warning("يرجى كتابة موضوع أولاً.")
 
 st.markdown("---")
-st.caption("Developed by siragsoft | Powered by Gemini & gTTS")
+st.caption("تم التطوير بواسطة siragsoft | نسخة الصوت الصافي 2.0")
