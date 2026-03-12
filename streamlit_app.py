@@ -4,71 +4,67 @@ from gtts import gTTS
 import io
 import re
 
-# 1. إعدادات الصفحة والتنسيق الجمالي
+# 1. إعدادات الصفحة
 st.set_page_config(page_title="Sovereign AI Studio", page_icon="🎬", layout="centered")
 
+# تنسيق CSS
 st.markdown("""
     <style>
     .stButton>button { width: 100%; border-radius: 20px; background-color: #FF4B4B; color: white; height: 3em; font-weight: bold; border: none; }
-    .stButton>button:hover { background-color: #ff3333; }
     .audio-box { background-color: #f0f2f6; padding: 20px; border-radius: 15px; border: 1px solid #d1d5db; margin-top: 10px; }
     .script-box { background-color: #ffffff; padding: 15px; border-radius: 10px; border-right: 5px solid #1e3a8a; margin-bottom: 20px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); color: #1e293b; }
     </style>
     """, unsafe_allow_html=True)
 
-# شعار التطبيق الاحترافي
+# العنوان والشعار
 st.markdown("""
     <div style="text-align: center; padding: 20px; background-color: #1e3a8a; border-radius: 15px; margin-bottom: 25px;">
         <h1 style="color: #fbbf24; margin: 0; font-family: 'Arial Black';">🎬 SOVEREIGN STUDIO</h1>
-        <p style="color: white; font-size: 1.1em;">النص + الصوت + الصور المقترحة</p>
+        <p style="color: white; font-size: 1.1em;">نصوص، أصوات، وصور بضغطة زر</p>
     </div>
     """, unsafe_allow_html=True)
 
-# 2. جلب المفتاح السري من Streamlit Secrets
+# 2. إعداد مفتاح الـ API
 try:
     API_KEY = st.secrets["GEMINI_API_KEY"]
     genai.configure(api_key=API_KEY)
 except:
-    st.error("⚠️ خطأ: يرجى إضافة GEMINI_API_KEY في ملف Secrets الخاص بموقع Streamlit.")
+    st.error("⚠️ خطأ: يرجى إضافة GEMINI_API_KEY في إعدادات Secrets.")
     st.stop()
 
-# 3. واجهة المستخدم المدخلات
-topic = st.text_input("ما هي فكرة الفيديو القادم؟", placeholder="مثلاً: حقائق غريبة عن الفضاء")
+# 3. واجهة المدخلات
+topic = st.text_input("ما هي فكرة الفيديو القادم؟", placeholder="مثلاً: أسرار النجاح في البرمجة")
 
+# 4. زر التشغيل
 if st.button("توليد المشروع الكامل ✨"):
     if topic:
-        with st.spinner("شفري يحلل، يكتب، ويصمم لك المحتوى..."):
+        with st.spinner("شفري يجهز لك المحتوى..."):
             try:
-                # اكتشاف الموديل المتاح تلقائياً
+                # اختيار الموديل
                 model_list = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
                 working_model = model_list[0] if model_list else 'gemini-pro'
                 model = genai.GenerativeModel(working_model)
                 
-                # البرومبت المطور لجلب النص والكلمات المفتاحية
+                # البرومبت
                 prompt = f"""
-                اكتب نص فيديو تيك توك قصير ومثير عن: {topic}.
-                1. ضع الكلام الذي سيُقال صوتياً فقط (Voice-over) بين علامتي [START] و [END].
-                2. اقترح 3 كلمات مفتاحية بالإنجليزية فقط للبحث عن صور مناسبة للمشاهد وضعها في سطر يبدأ بكلمة Keywords:
+                اكتب نص فيديو تيك توك قصير عن: {topic}.
+                1. ضع الكلام الذي سيُقال صوتياً فقط بين علامتي [START] و [END].
+                2. اقترح 3 كلمات مفتاحية بالإنجليزية للصور بعد كلمة Keywords:
                 """
                 
                 response = model.generate_content(prompt)
                 full_text = response.text
                 
-                # عرض النص الكامل للمستخدم
+                # عرض النص
                 st.markdown("### 📝 سيناريو الفيديو")
                 st.markdown(f'<div class="script-box">{full_text}</div>', unsafe_allow_html=True)
 
-                # --- عملية استخراج وتنظيف الصوت ---
+                # استخراج الصوت
                 voice_match = re.search(r'\[START\](.*?)\[END\]', full_text, re.DOTALL)
-                if voice_match:
-                    voice_text = voice_match.group(1).strip()
-                else:
-                    voice_text = re.sub(r'[*#_]', '', full_text)
-                
-                # تنظيف إضافي لإزالة الملاحظات بين أقواس
-                voice_text = re.sub(r'\(.*?\)', '', voice_text).replace('[START]', '').replace('[END]', '')
+                voice_text = voice_match.group(1).strip() if voice_match else full_text
+                voice_text = re.sub(r'[*#_]', '', voice_text)
+                voice_text = re.sub(r'\(.*?\)', '', voice_text)
 
-                # توليد ملف الصوت باستخدام gTTS
                 if voice_text:
                     tts = gTTS(text=voice_text, lang='ar')
                     audio_fp = io.BytesIO()
@@ -77,160 +73,27 @@ if st.button("توليد المشروع الكامل ✨"):
                     st.markdown('<div class="audio-box">', unsafe_allow_html=True)
                     st.write("### 🎧 الصوت الصافي المستخرج:")
                     st.audio(audio_fp, format='audio/mp3')
-                    st.download_button(label="تحميل الصوت MP3 📥", data=audio_fp.getvalue(), file_name="voice_over.mp3")
+                    st.download_button(label="تحميل الصوت MP3 📥", data=audio_fp.getvalue(), file_name="voice.mp3")
                     st.markdown('</div>', unsafe_allow_html=True)
 
-                # --- ميزة عرض الصور المقترحة ---
+                # عرض الصور المقترحة
                 st.write("---")
-                st.markdown("### 🖼️ صور ملهمة للمونتاج:")
-                
+                st.markdown("### 🖼️ صور ملهمة:")
                 kw_match = re.search(r'Keywords:(.*)', full_text, re.IGNORECASE)
                 if kw_match:
                     keywords = kw_match.group(1).split(',')
                     cols = st.columns(len(keywords[:3]))
                     for i, kw in enumerate(keywords[:3]):
                         clean_kw = kw.strip().replace(" ", "+")
-                        # جلب صورة عشوائية عالية الجودة من Unsplash بناءً على الكلمة المفتاحية
                         img_url = f"https://source.unsplash.com/featured/800x600?{clean_kw}"
                         with cols[i]:
-                            st.image(img_url, caption=f"بحث عن: {kw.strip()}", use_container_width=True)
-                else:
-                    st.info("اكتب موضوعاً أكثر تحديداً ليتمكن الذكاء الاصطناعي من اقتراح صور.")
-
-            except Exception as e:
-                st.error(f"حدث خطأ تقني: {e}")
-    else:
-        st.warning("يرجى كتابة عنوان للفيديو أولاً.")
-
-# تذييل الصفحة
-st.markdown("---")
-st.caption("تم التطوير بواسطة siragsoft | الإصدار المتقدم 3.0")topic = st.text_input("ما هي فكرة الفيديو القادم؟", placeholder="مثلاً: حقائق غريبة عن الفضاء")
-
-if st.button("توليد المشروع الكامل ✨"):
-    if topic:
-        with st.spinner("شفري يحلل، يكتب، ويصمم لك الفيديو..."):
-            try:
-                # اكتشاف الموديل المتاح
-                model_list = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-                working_model = model_list[0] if model_list else 'gemini-pro'
-                model = genai.GenerativeModel(working_model)
-                
-                # البرومبت المطور لجلب النص والكلمات المفتاحية للصور
-                prompt = f"""
-                اكتب نص فيديو تيك توك قصير ومثير عن: {topic}.
-                1. ضع الكلام الذي سيُقال صوتياً فقط بين [START] و [END].
-                2. اقترح 3 كلمات مفتاحية بالإنجليزية للبحث عن صور مناسبة للمشاهد وضعها بعد كلمة Keywords:
-                """
-                
-                response = model.generate_content(prompt)
-                full_text = response.text
-                
-                # --- عرض النتائج ---
-                st.markdown("### 📝 سيناريو الفيديو")
-                st.markdown(f'<div class="script-box">{full_text}</div>', unsafe_allow_html=True)
-
-                # --- استخراج وتنظيف الصوت ---
-                voice_match = re.search(r'\[START\](.*?)\[END\]', full_text, re.DOTALL)
-                voice_text = voice_match.group(1).strip() if voice_match else re.sub(r'[*#_]', '', full_text)
-                voice_text = re.sub(r'\(.*?\)', '', voice_text).replace('[START]', '').replace('[END]', '')
-
-                # توليد الصوت
-                tts = gTTS(text=voice_text, lang='ar')
-                audio_fp = io.BytesIO()
-                tts.write_to_fp(audio_fp)
-                
-                st.markdown('<div class="audio-box">', unsafe_allow_html=True)
-                st.write("### 🎧 الصوت الصافي المستخرج:")
-                st.audio(audio_fp, format='audio/mp3')
-                st.download_button(label="تحميل الصوت MP3 📥", data=audio_fp.getvalue(), file_name="script_voice.mp3")
-                st.markdown('</div>', unsafe_allow_html=True)
-
-                # --- ميزة البحث عن الصور المقترحة ---
-                st.write("---")
-                st.markdown("### 🖼️ صور مقترحة للمونتاج:")
-                
-                # استخراج الكلمات المفتاحية من النص (البحث عن سطر Keywords)
-                kw_match = re.search(r'Keywords:(.*)', full_text, re.IGNORECASE)
-                if kw_match:
-                    keywords = kw_match.group(1).split(',')
-                    cols = st.columns(len(keywords[:3])) # عرض 3 صور كحد أقصى
-                    for i, kw in enumerate(keywords[:3]):
-                        clean_kw = kw.strip().replace(" ", "+")
-                        # استخدام Unsplash كخدمة صور سريعة ومجانية للمطورين
-                        img_url = f"https://source.unsplash.com/featured/?{clean_kw}"
-                        with cols[i]:
                             st.image(img_url, caption=f"صورة لـ: {kw.strip()}", use_container_width=True)
-                else:
-                    st.info("لم يتم العثور على كلمات مفتاحية للصور، جرب كتابة موضوع أوضح.")
 
-            except Exception as e:
-                st.error(f"حدث خطأ: {e}")
-    else:
-        st.warning("يرجى كتابة عنوان للفيديو.")
-
-st.markdown("---")
-st.caption("تم التطوير بواسطة siragsoft | الإصدار المتقدم 3.0")if st.button("توليد النص والصوت الصافي ✨"):
-    if topic:
-        with st.spinner("شفري يقوم بتنقية النص وتحويله لصوت..."):
-            try:
-                # اكتشاف الموديل المتاح
-                model_list = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-                working_model = model_list[0] if model_list else 'gemini-pro'
-                model = genai.GenerativeModel(working_model)
-                
-                # البرومبت المطور لاستخراج الصوت الصافي
-                prompt = f"""
-                اكتب نص فيديو تيك توك قصير عن: {topic}.
-                مهم جداً: ضع الكلام الذي سيُقال صوتياً فقط (Voice-over) بين علامتي [START] و [END].
-                أي ملاحظات إخراجية أو عناوين فرعية ضعها خارج هذه العلامات.
-                """
-                
-                response = model.generate_content(prompt)
-                full_text = response.text
-                
-                # عرض النص الكامل للمستخدم
-                st.markdown("### 📝 السيناريو المقترح:")
-                st.markdown(f'<div class="script-box">{full_text}</div>', unsafe_allow_html=True)
-
-                # --- عملية استخراج وتنظيف الصوت ---
-                # 1. البحث عن النص بين العلامات
-                voice_match = re.search(r'\[START\](.*?)\[END\]', full_text, re.DOTALL)
-                if voice_match:
-                    voice_text = voice_match.group(1).strip()
-                else:
-                    voice_text = full_text # إذا فشل الموديل نأخذ النص كاملاً
-                
-                # 2. تنظيف النص من النجوم، المربعات، وأي ملاحظات بين أقواس
-                voice_text = re.sub(r'[*#_]', '', voice_text)  # حذف علامات التنسيق
-                voice_text = re.sub(r'\(.*?\)', '', voice_text) # حذف ملاحظات مثل (موسيقى حماسية)
-                voice_text = voice_text.replace('[START]', '').replace('[END]', '') # التأكد من حذف العلامات نفسها
-                
-                # 4. توليد الصوت gTTS
-                if voice_text:
-                    tts = gTTS(text=voice_text, lang='ar')
-                    audio_fp = io.BytesIO()
-                    tts.write_to_fp(audio_fp)
-                    
-                    # عرض قسم الصوت
-                    st.markdown('<div class="audio-box">', unsafe_allow_html=True)
-                    st.write("### 🎧 الصوت الصافي المستخرج:")
-                    st.audio(audio_fp, format='audio/mp3')
-                    
-                    st.download_button(
-                        label="تحميل ملف الصوت الصافي MP3 📥",
-                        data=audio_fp.getvalue(),
-                        file_name="clean_voice_over.mp3",
-                        mime="audio/mp3"
-                    )
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    
-                    with st.expander("رؤية النص الذي تم إرساله للمحرك الصوتي"):
-                        st.write(voice_text)
-                
             except Exception as e:
                 st.error(f"حدث خطأ: {e}")
     else:
         st.warning("يرجى كتابة موضوع أولاً.")
 
+# 5. تذييل الصفحة (تأكد أن هذا السطر منفصل تماماً)
 st.markdown("---")
-st.caption("تم التطوير بواسطة siragsoft | نسخة الصوت الصافي 2.0")
+st.caption("تم التطوير بواسطة siragsoft | الإصدار المتقدم 3.1")
