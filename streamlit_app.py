@@ -7,14 +7,12 @@ import re
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="Sovereign AI Studio", page_icon="🎬", layout="centered")
 
-# تنسيق CSS احترافي
+# تنسيق CSS
 st.markdown("""
     <style>
     .stButton>button { width: 100%; border-radius: 20px; background-color: #FF4B4B; color: white; height: 3em; font-weight: bold; border: none; }
     .audio-box { background-color: #f0f2f6; padding: 20px; border-radius: 15px; border: 1px solid #d1d5db; margin-top: 10px; }
     .script-box { background-color: #ffffff; padding: 15px; border-radius: 10px; border-right: 5px solid #1e3a8a; margin-bottom: 20px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); color: #1e293b; }
-    img { border-radius: 10px; transition: transform .2s; }
-    img:hover { transform: scale(1.05); }
     </style>
     """, unsafe_allow_html=True)
 
@@ -35,6 +33,67 @@ except:
     st.stop()
 
 # 3. مدخلات المستخدم
+topic = st.text_input("ما هي فكرة الفيديو القادم؟", placeholder="مثلاً: كيف ينمو المال بالاستثمار")
+
+# --- تأكد أن هذا الجزء موجود مرة واحدة فقط في الملف ---
+if st.button("توليد المشروع الكامل ✨", key="main_generate_btn"):
+    if topic:
+        with st.spinner("شفري يصمم لك المحتوى الآن..."):
+            try:
+                # اختيار الموديل
+                model_list = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+                working_model = model_list[0] if model_list else 'gemini-pro'
+                model = genai.GenerativeModel(working_model)
+                
+                # البرومبت
+                prompt = f"""اكتب نص فيديو قصير عن {topic}. 
+                ضع الكلام الصوتي بين [START] و [END]. 
+                اقترح 3 كلمات مفتاحية بالإنجليزية فقط للصور في سطر يبدأ بكلمة Keywords:"""
+                
+                response = model.generate_content(prompt)
+                full_text = response.text
+                
+                # عرض النص
+                st.markdown("### 📝 سيناريو الفيديو")
+                st.markdown(f'<div class="script-box">{full_text}</div>', unsafe_allow_html=True)
+
+                # معالجة الصوت
+                voice_match = re.search(r'\[START\](.*?)\[END\]', full_text, re.DOTALL)
+                voice_text = voice_match.group(1).strip() if voice_match else full_text
+                voice_text = re.sub(r'[*#_]', '', voice_text)
+                voice_text = re.sub(r'\(.*?\)', '', voice_text)
+
+                if voice_text:
+                    tts = gTTS(text=voice_text, lang='ar')
+                    audio_fp = io.BytesIO()
+                    tts.write_to_fp(audio_fp)
+                    st.markdown('<div class="audio-box">', unsafe_allow_html=True)
+                    st.write("### 🎧 الصوت الصافي المستخرج:")
+                    st.audio(audio_fp, format='audio/mp3')
+                    st.download_button(label="تحميل الصوت MP3 📥", data=audio_fp.getvalue(), file_name="voice.mp3")
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                # عرض الصور
+                st.write("---")
+                st.markdown("### 🖼️ لقطات مقترحة للمونتاج:")
+                kw_match = re.search(r'Keywords:(.*)', full_text, re.IGNORECASE)
+                if kw_match:
+                    keywords = kw_match.group(1).split(',')
+                    cols = st.columns(len(keywords[:3]))
+                    for i, kw in enumerate(keywords[:3]):
+                        clean_kw = kw.strip().replace(" ", ",")
+                        img_url = f"https://loremflickr.com/800/600/{clean_kw}"
+                        with cols[i]:
+                            st.image(img_url, caption=f"مشهد: {kw.strip()}", use_container_width=True)
+
+            except Exception as e:
+                st.error(f"حدث خطأ: {e}")
+    else:
+        st.warning("يرجى كتابة عنوان للفيديو.")
+
+# 5. تذييل الصفحة
+st.markdown("---")
+st.caption("تم التطوير بواسطة siragsoft | النسخة 3.2 المستقرة")# 3. مدخلات المستخدم
 topic = st.text_input("ما هي فكرة الفيديو القادم؟", placeholder="مثلاً: كيف ينمو المال بالاستثمار")
 
 if st.button("توليد المشروع الكامل ✨"):
